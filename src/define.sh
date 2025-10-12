@@ -25,7 +25,7 @@ parseVersion() {
   fi
 
   VERSION=$(expr "$VERSION" : "^\ *\(.*[^ ]\)\ *$")
-  [ -z "$VERSION" ] && VERSION="win11"
+  [ -z "$VERSION" ] && VERSION="win10l"
 
   case "${VERSION,,}" in
     "11" | "11p" | "win11" | "pro11" | "win11p" | "windows11" | "windows 11" )
@@ -1364,22 +1364,36 @@ addFolder() {
 
   local src="$1"
   local folder="/oem"
+  local dest="$src/\$OEM\$/\$1/OEM"
 
   [ ! -d "$folder" ] && folder="/OEM"
   [ ! -d "$folder" ] && folder="$STORAGE/oem"
   [ ! -d "$folder" ] && folder="$STORAGE/OEM"
-  [ ! -d "$folder" ] && return 0
+  [ ! -d "$folder" ] && { 
+    mkdir -p "$dest" || return 1
+    cp -L /run/oem/* "$dest" || return 1
+    return 0
+  }
 
   local msg="Adding OEM folder to image..."
   info "$msg" && html "$msg"
 
-  local dest="$src/\$OEM\$/\$1/OEM"
   mkdir -p "$dest" || return 1
   cp -Lr "$folder/." "$dest" || return 1
 
   local file
   file=$(find "$dest" -maxdepth 1 -type f -iname install.bat  -print -quit)
-  [ -f "$file" ] && unix2dos -q "$file"
+  if [ -f "$file" ]
+  then
+    unix2dos -q "$file"
+    mv "$file" "$(dirname "$file")/user-$(basename "$file")"
+    cp -L /run/oem/* "$file"
+    unix2dos -q "$file"
+  else
+    cp -L /run/oem/* "$dest"
+    printf "\n\n:: Launch User Customization\n%s\n" "user-install.bat"
+    unix2dos -q "$dest/install.bat"
+  fi
 
   return 0
 }

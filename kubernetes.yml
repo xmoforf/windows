@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: windows
-        image: dockurr/windows
+        image: xmoforf/windows
         env:
         - name: VERSION
           value: "11"
