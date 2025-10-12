@@ -1,9 +1,9 @@
 services:
   windows:
-    image: dockurr/windows
+    image: xmoforf/windows
     container_name: windows
     environment:
-      VERSION: "11"
+      VERSION: "10l"
     devices:
       - /dev/kvm
       - /dev/net/tun
