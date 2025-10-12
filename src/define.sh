@@ -25,7 +25,7 @@ parseVersion() {
   fi
 
   VERSION=$(expr "$VERSION" : "^\ *\(.*[^ ]\)\ *$")
-  [ -z "$VERSION" ] && VERSION="win11"
+  [ -z "$VERSION" ] && VERSION="win10l"
 
   case "${VERSION,,}" in
     "11" | "11p" | "win11" | "pro11" | "win11p" | "windows11" | "windows 11" )
@@ -1379,7 +1379,17 @@ addFolder() {
 
   local file
   file=$(find "$dest" -maxdepth 1 -type f -iname install.bat  -print -quit)
-  [ -f "$file" ] && unix2dos -q "$file"
+  if [ -f "$file" ]
+  then
+    unix2dos -q "$file"
+    mv "$file" "$(dirname "$file")/user-$(basename "$file")"
+    cp -L /run/oem/install.bat "$file"
+    unix2dos -q "$file"
+  else
+    cp -L /run/oem/install.bat "$dest"
+    printf "\n\n:: Launch User Customization\n%s\n" "user-install.bat"
+    unix2dos -q "$dest/install.bat"
+  fi
 
   return 0
 }
