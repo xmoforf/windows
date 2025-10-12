@@ -1,3 +1,10 @@
+# Customized Windows 10
+
+Some customizations to dockurr/windows.
+
+- Windows 10 LTSC Default
+- Other stuff
+
 <h1 align="center">Windows<br />
 <div align="center">
 <a href="https://github.com/dockur/windows"><img src="https://github.com/dockur/windows/raw/master/.github/logo.png" title="Logo" style="max-width:100%;" width="128" /></a>
@@ -31,10 +38,8 @@ Windows inside a Docker container.
 ```yaml
 services:
   windows:
-    image: dockurr/windows
+    image: xmoforf/windows
     container_name: windows
-    environment:
-      VERSION: "11"
     devices:
       - /dev/kvm
       - /dev/net/tun
@@ -45,9 +50,12 @@ services:
       - 3389:3389/tcp
       - 3389:3389/udp
     volumes:
-      - ./windows:/storage
+      - windows-os:/storage
+      - ./shared:/shared
     restart: always
     stop_grace_period: 2m
+volumes:
+    windows-os:
 ```
 
 ##### Via Docker CLI:
