@@ -21,7 +21,7 @@ where openssl > nul 2>&1
 if errorlevel 1 (
     echo [!] OpenSSL not found in PATH.
     echo [*] Downloading and installing OpenSSL...
-    curl -sSL "%src_openssl%" -o "%src_oem%\downloads\openssl-installer.exe"
+    curl -fsSL "%src_openssl%" -o "%src_oem%\downloads\openssl-installer.exe"
     if errorlevel 1 (
         >>"%log%" echo [%timestamp%] [ERROR] Failed down download OpenSSL installer.
 	goto :eof
