@@ -1,10 +1,9 @@
 services:
   windows:
-    image: dockurr/windows
     container_name: windows
+    image: ghcr.io/dockur/windows
     environment:
-      VERSION: "11"
-      RAM_SIZE: "max"
+      RAM_SIZE: "half"
       DISK_SIZE: "max"
       CPU_CORES: "max"
     devices:

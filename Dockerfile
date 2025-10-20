@@ -3,7 +3,7 @@
 ARG VERSION_ARG="latest"
 FROM scratch AS build-amd64
 
-COPY --from=qemux/qemu:7.24 / /
+COPY --from=qemux/qemu:7.26 / /
 
 ARG TARGETARCH
 ARG DEBCONF_NOWARNINGS="yes"
@@ -28,7 +28,7 @@ COPY --chmod=755 ./src /run/
 COPY --chmod=755 ./assets /run/assets
 COPY --chmod=755 ./oem /run/oem
 
-ADD --chmod=664 https://github.com/qemus/virtiso-whql/releases/download/v1.9.47-0/virtio-win-1.9.47.tar.xz /var/drivers.txz
+ADD --chmod=664 https://github.com/qemus/virtiso-whql/releases/download/v1.9.48-0/virtio-win-1.9.48.tar.xz /var/drivers.txz
 
 ARG VERSION_ARG="0.00"
 RUN echo "$VERSION_ARG" > /run/version
