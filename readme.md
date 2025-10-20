@@ -1,35 +1,9 @@
-# Customized Windows 10
+# Customized Windows Deployment
 
-Some customizations to dockurr/windows.
+Here are provided some customizations to dockurr/windows, provided as a fork of the project.
 
-- Windows 10 LTSC Default
+- Windows 11 LTSC Default
 - Other stuff
-
-<h1 align="center">Windows<br />
-<div align="center">
-<a href="https://github.com/dockur/windows"><img src="https://github.com/dockur/windows/raw/master/.github/logo.png" title="Logo" style="max-width:100%;" width="128" /></a>
-</div>
-<div align="center">
-
-[![Build]][build_url]
-[![Version]][tag_url]
-[![Size]][tag_url]
-[![Package]][pkg_url]
-[![Pulls]][hub_url]
-
-</div></h1>
-
-Windows inside a Docker container.
-
-## Features ✨
-
- - ISO downloader
- - KVM acceleration
- - Web-based viewer
-
-## Video 📺
-
-[![Youtube](https://img.youtube.com/vi/xhGYobuG508/0.jpg)](https://www.youtube.com/watch?v=xhGYobuG508)
 
 ## Usage 🐳
 
