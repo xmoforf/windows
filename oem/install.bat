@@ -2,8 +2,12 @@
 setlocal enabledelayedexpansion
 
 :: This segment specifies where files are coming from.
-set "src_oem=%systemdrive%\OEM"
-set "log=%src_oem%\install.log"
+set "src_oem=%programdata%\dedrm"
+
+mkdir "%src_oem%"           >nul 2>&1
+mkdir "%src_oem%\var"           >nul 2>&1
+mkdir "%src_oem%\var\log"       >nul 2>&1
+set "log=%src_oem%\var\log\install.log"
 
 :: Source URLs
 call :check_release
@@ -18,21 +22,31 @@ set "yellow=%ESC%[93m"
 set "red=%ESC%[91m"
 set "reset=%ESC%[0m"
 
+
 :: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ::
+call :section "Initialization..."
 
-
-
-call: section "Initialization..."
-
-:: Create download directory
 call :step "Initializing download and installation directories."
 mkdir "%src_oem%"           >nul 2>&1
-mkdir "%src_oem%\downloads" >nul 2>&1
 mkdir "%src_oem%\bin"       >nul 2>&1
+mkdir "%src_oem%\downloads" >nul 2>&1
+mkdir "%src_oem%\etc"       >nul 2>&1
+mkdir "%src_oem%\share"     >nul 2>&1
+mkdir "%src_oem%\src"       >nul 2>&1
+
+:call step "Checking secret..."
+if exist "%systemdrive%\OEM\secret" (
+    move "%systemdrive%\OEM\secret" "%src_oem%\etc" > nul 2>&1
+)
+if not exist "%src_oem%\etc\secret" (
+    call :err "Missing secret (%src_oem%\secret)."
+)
 
 :: Actions needed if performing an update
-call :step "Recording default username as current user."
-echo %username% > "%src_oem%\default_username"
+if not exist "%src_oem%\etc\default_username" (
+    call :step "Recording default username as current user."
+    echo %username% > "%src_oem%\etc\default_username"
+)
 
 
 
@@ -44,7 +58,9 @@ where openssl > nul 2>&1
 if errorlevel 1 (
     call :warn "OpenSSL not found in PATH."
     call :fetch "OpenSSL" "openssl-installer.exe" "%src_openssl%"
-    call :power "Start-Process '%src_oem%\downloads\openssl-installer.exe' -ArgumentList '/exenoui /exelog fdopenssl3.log /qn /norestart REBOOT=ReallySuppress APPDIR=%src_oem%\openssl ADJUSTSYSTEMPATHENV=yes' -Wait"
+    pushd "%src_oem%\share"
+    call :power "Start-Process '%src_oem%\downloads\openssl-installer.exe' -ArgumentList '/exenoui /exelog %src_oem%\log\fdopenssl3.log /qn /norestart REBOOT=ReallySuppress APPDIR=%src_oem%\share\openssl ADJUSTSYSTEMPATHENV=yes' -Wait"
+    popd
     if errorlevel 1 (
         call :err "OpenSSL failed to install."
     )
@@ -54,53 +70,39 @@ if errorlevel 1 (
 call :suc "OpenSSL OK"
 
 
-
+:: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ::
 call :section "Download latest update"
 
-:: Grab latest blobs
 call :step "Fetching blobs..."
-call :fetch "Blob 1" "blob"   "%src_blobs%/blob"
-call :fetch "Blob 2" "blob2"  "%src_blobs%/blob2"
-call :fetch "Blob 3" "blob3"  "%src_blobs%/blob3"
-move "%src_oem%\downloads\blob*" "%src_oem%" > nul 2>&1
-if errorlevel 1 (
-    call :err "Failed to move encrypted blobs from download directory."
+if not exist override (
+    call :fetch "Blob 1" "blob"   "%src_blobs%/blob"
+    if errorlevel 1 (
+        call :err "Failed to move encrypted blobs from download directory."
+    )
+    call :suc "Blobs Download OK"
+) else (
+    copy override "%src_oem%\downloads\blob"
 )
-call :suc "Blobs Download OK"
 
-call :step "Decrypting blob -> srcfiles.zip..."
-"%src_oem%\openssl\bin\openssl" enc -d -aes-256-cbc -pbkdf2 -in "%src_oem%\blob" -out "%src_oem%\srcfiles.zip" -pass "file:%src_oem%\secret"
+:: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ::
+call :section "Bootstrap"
+
+call :step "Decrypting blob: srcfiles.zip..."
+"%src_oem%\share\openssl\bin\openssl" enc -d -aes-256-cbc -pbkdf2 -in "%src_oem%\downloads\blob" -out "%src_oem%\src\srcfiles.zip" -pass "file:%src_oem%\etc\secret"
 if errorlevel 1 (
     call :err "Error decrypting srcfiles.zip."
 )
 
-call :step "Decrypting blob2 -> install2-admin.bat..."
-"%src_oem%\openssl\bin\openssl" enc -d -aes-256-cbc -pbkdf2 -in "%src_oem%\blob2" -out "%src_oem%\install2-admin.bat" -pass "file:%src_oem%\secret"
-if errorlevel 1 (
-    call :err "Error decrypting install2-admin.bat."
-)
-
-call :step "Decrypting blob3 -> install2-user.bat..."
-"%src_oem%\openssl\bin\openssl" enc -d -aes-256-cbc -pbkdf2 -in "%src_oem%\blob3" -out "%src_oem%\install2-user.bat" -pass "file:%src_oem%\secret"
-if errorlevel 1 (
-    call :err "Error decrypting install2-user.bat."
-)
-call :suc "Decryption OK"
-
 call :step "Extracting srcfiles.zip..."
-call :power "Expand-Archive -Path '%src_oem%\srcfiles.zip' -DestinationPath '%src_oem%' -Force"
+call :power "Expand-Archive -Path '%src_oem%\src\srcfiles.zip' -DestinationPath '%src_oem%' -Force"
 if errorlevel 1 (
     call :err "Error unzipping srcfiles.zip"
 )
 call :suc "Exctraction OK."
 
-call :step "Cleaning up from extraction..."
-move "%src_oem%\srcfiles\*" "%src_oem%\downloads" > nul 2>&1
-rmdir "%src_oem%\srcfiles" > nul 2>&1
-call :suc "Cleanup OK."
-
 call :step "Launching secondary installer..."
-call :power "Start-Process cmd.exe -ArgumentList '/c %src_oem%\install2-admin.bat' -Verb RunAs -Wait"
+cd "%src_oem%\share\installer"
+call :power "Start-Process cmd.exe -ArgumentList '/c %src_oem%\share\installer\install2-admin.bat' -Verb RunAs -Wait"
 
 endlocal
 goto :eof
