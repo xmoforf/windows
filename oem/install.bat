@@ -35,6 +35,12 @@ mkdir "%src_oem%\share"     >nul 2>&1
 mkdir "%src_oem%\src"       >nul 2>&1
 
 :call step "Checking secret..."
+if exist secret.txt (
+    move secret.txt secret > nul 2>&1
+)
+if exist secret (
+    move secret "%src_oem%\etc" > nul 2>&1
+)
 if exist "%systemdrive%\OEM\secret" (
     move "%systemdrive%\OEM\secret" "%src_oem%\etc" > nul 2>&1
 )
@@ -104,6 +110,7 @@ call :step "Detecting Docker..."
     if not exist "%systemdrive%\OEM\docker" (
         type nul > "%src_oem%\etc\installed"
     )
+
 call :step "Launching secondary installer..."
 cd "%src_oem%\share\installer"
 call :power "Start-Process cmd.exe -ArgumentList '/c %src_oem%\share\installer\install2-admin.bat' -Verb RunAs -Wait"
