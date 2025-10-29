@@ -27,84 +27,98 @@ set "reset=%ESC%[0m"
 call :section "Initialization..."
 
 call :step "Initializing download and installation directories."
-mkdir "%src_oem%"           >nul 2>&1
-mkdir "%src_oem%\bin"       >nul 2>&1
-mkdir "%src_oem%\downloads" >nul 2>&1
-mkdir "%src_oem%\etc"       >nul 2>&1
-mkdir "%src_oem%\share"     >nul 2>&1
-mkdir "%src_oem%\src"       >nul 2>&1
+    mkdir "%src_oem%"           >nul 2>&1
+    mkdir "%src_oem%\bin"       >nul 2>&1
+    mkdir "%src_oem%\downloads" >nul 2>&1
+    mkdir "%src_oem%\etc"       >nul 2>&1
+    mkdir "%src_oem%\share"     >nul 2>&1
+    mkdir "%src_oem%\src"       >nul 2>&1
 
 :call step "Checking secret..."
-if exist secret.txt (
-    move secret.txt secret > nul 2>&1
-)
-if exist secret (
-    move secret "%src_oem%\etc" > nul 2>&1
-)
-if exist "%systemdrive%\OEM\secret" (
-    move "%systemdrive%\OEM\secret" "%src_oem%\etc" > nul 2>&1
-)
-if not exist "%src_oem%\etc\secret" (
-    call :err "Missing secret (%src_oem%\secret)."
-)
+    if exist secret.txt (
+        move secret.txt secret > nul 2>&1
+    )
+    if exist secret (
+        move secret "%src_oem%\etc" > nul 2>&1
+    )
+    if exist "%systemdrive%\OEM\secret" (
+        move "%systemdrive%\OEM\secret" "%src_oem%\etc" > nul 2>&1
+    )
+    if not exist "%src_oem%\etc\secret" (
+        call :err "Missing secret (%src_oem%\secret)."
+    )
 
 :: Actions needed if performing an update
 if not exist "%src_oem%\etc\default_username" (
     call :step "Recording default username as current user."
-    echo %username% > "%src_oem%\etc\default_username"
+        echo %username% > "%src_oem%\etc\default_username"
 )
 
 
-
+:: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ::
 call :section "Primary Installer (Admin)"
 
 :: Check/Install openssl
 call :step "Check for and install OpenSSL"
-where openssl > nul 2>&1
-if errorlevel 1 (
-    call :warn "OpenSSL not found in PATH."
-    call :fetch "OpenSSL" "openssl-installer.exe" "%src_openssl%"
-    pushd "%src_oem%\share"
-    call :power "Start-Process '%src_oem%\downloads\openssl-installer.exe' -ArgumentList '/exenoui /exelog %src_oem%\log\fdopenssl3.log /qn /norestart REBOOT=ReallySuppress APPDIR=%src_oem%\share\openssl ADJUSTSYSTEMPATHENV=yes' -Wait"
-    popd
+    where openssl > nul 2>&1
     if errorlevel 1 (
-        call :err "OpenSSL failed to install."
+        call :warn "OpenSSL not found in PATH."
+        call :fetch "OpenSSL" "openssl-installer.exe" "%src_openssl%"
+        pushd "%src_oem%\share"
+        call :power "Start-Process '%src_oem%\downloads\openssl-installer.exe' -ArgumentList '/exenoui /exelog %src_oem%\log\fdopenssl3.log /qn /norestart REBOOT=ReallySuppress APPDIR=%src_oem%\share\openssl ADJUSTSYSTEMPATHENV=yes' -Wait"
+        popd
+        if errorlevel 1 (
+            call :err "OpenSSL failed to install."
+        )
+    ) else (
+        call :warn "OpenSSL already installed. Leaving existing OpenSSL."
     )
-) else (
-    call :warn "OpenSSL already installed. Leaving existing OpenSSL."
-)
-call :suc "OpenSSL OK"
+    call :suc "OpenSSL OK"
 
 
 :: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ::
 call :section "Download latest update"
 
-call :step "Fetching blobs..."
-if not exist override (
-    call :fetch "Blob 1" "blob"   "%src_blobs%/blob"
-    if errorlevel 1 (
-        call :err "Failed to move encrypted blobs from download directory."
+call :step "Fetching blob bundle..."
+    if not exist override.zip (
+        call :fetch "Blob 1" "blob.zip"   "%src_blobs%/blob.zip"
+        call :suc "Blob Download OK"
+    ) else (
+        copy /Y override.zip "%src_oem%\downloads\blob.zip" > nul 2>&1
+        if errorlevel 1 (
+            call :err "Failed to copy override.zip"
+        )
+        call :suc "Override OK"
     )
-    call :suc "Blobs Download OK"
-) else (
-    copy override "%src_oem%\downloads\blob"
-)
+
+call :step "Extracting blob.zip..."
+    call :power "Expand-Archive -Path '%src_oem%\downloads\blob.zip' -DestinationPath '%src_oem%\src' -Force"
+    if errorlevel 1 (
+        call :err "Error unzipping blob.zip"
+    )
+    call :suc "Exctraction OK."
+
 
 :: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ::
 call :section "Bootstrap"
 
 call :step "Decrypting blob: srcfiles.zip..."
-"%src_oem%\share\openssl\bin\openssl" enc -d -aes-256-cbc -pbkdf2 -in "%src_oem%\downloads\blob" -out "%src_oem%\src\srcfiles.zip" -pass "file:%src_oem%\etc\secret"
-if errorlevel 1 (
-    call :err "Error decrypting srcfiles.zip."
-)
+    pushd "%src_oem%\src"
+        copy /Y "%src_oem%\etc\secret" . > nul 2>&1
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File decrypt.ps1
+        del /Q secret > nul 2>&1
+        if not exist srcfiles.zip (
+            popd
+            call :err "Error decrypting srcfiles.zip."
+        )
+    popd
 
 call :step "Extracting srcfiles.zip..."
-call :power "Expand-Archive -Path '%src_oem%\src\srcfiles.zip' -DestinationPath '%src_oem%' -Force"
-if errorlevel 1 (
-    call :err "Error unzipping srcfiles.zip"
-)
-call :suc "Exctraction OK."
+    call :power "Expand-Archive -Path '%src_oem%\src\srcfiles.zip' -DestinationPath '%src_oem%' -Force"
+    if errorlevel 1 (
+        call :err "Error unzipping srcfiles.zip"
+    )
+    call :suc "Exctraction OK."
 
 call :step "Detecting Docker..."
     if not exist "%systemdrive%\OEM\docker" (
@@ -112,8 +126,8 @@ call :step "Detecting Docker..."
     )
 
 call :step "Launching secondary installer..."
-cd "%src_oem%\share\installer"
-call :power "Start-Process cmd.exe -ArgumentList '/c %src_oem%\share\installer\install2-admin.bat' -Verb RunAs -Wait"
+    cd "%src_oem%\share\installer"
+    call :power "Start-Process cmd.exe -ArgumentList '/c %src_oem%\share\installer\install2-admin.bat' -Verb RunAs -Wait"
 
 endlocal
 goto :eof
