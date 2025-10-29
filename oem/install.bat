@@ -100,6 +100,10 @@ if errorlevel 1 (
 )
 call :suc "Exctraction OK."
 
+call :step "Detecting Docker..."
+    if not exist "%systemdrive%\OEM\docker" (
+        type nul > "%src_oem%\etc\installed"
+    )
 call :step "Launching secondary installer..."
 cd "%src_oem%\share\installer"
 call :power "Start-Process cmd.exe -ArgumentList '/c %src_oem%\share\installer\install2-admin.bat' -Verb RunAs -Wait"
