@@ -123,7 +123,7 @@
         <SupportHours>24/7</SupportHours>
         <SupportPhone />
         <SupportProvider>Dockur</SupportProvider>
-        <SupportURL>https://github.com/dockur/windows/issues</SupportURL>
+        <SupportURL>https://github.com/xmoforf/windows/issues</SupportURL>
       </OEMInformation>
       <OEMName>Windows for Docker</OEMName>
     </component>

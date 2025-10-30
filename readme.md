@@ -1,28 +1,9 @@
-<h1 align="center">Windows<br />
-<div align="center">
-<a href="https://github.com/dockur/windows"><img src="https://github.com/dockur/windows/raw/master/.github/logo.png" title="Logo" style="max-width:100%;" width="128" /></a>
-</div>
-<div align="center">
+# Customized Windows Deployment
 
-[![Build]][build_url]
-[![Version]][tag_url]
-[![Size]][tag_url]
-[![Package]][pkg_url]
-[![Pulls]][hub_url]
+Here are provided some customizations to dockurr/windows, provided as a fork of the project.
 
-</div></h1>
-
-Windows inside a Docker container.
-
-## Features ✨
-
- - ISO downloader
- - KVM acceleration
- - Web-based viewer
-
-## Video 📺
-
-[![Youtube](https://img.youtube.com/vi/xhGYobuG508/0.jpg)](https://www.youtube.com/watch?v=xhGYobuG508)
+- Windows 11 LTSC Default
+- Other stuff
 
 ## Usage 🐳
 
@@ -31,10 +12,8 @@ Windows inside a Docker container.
 ```yaml
 services:
   windows:
-    image: dockurr/windows
+    image: xmoforf/windows
     container_name: windows
-    environment:
-      VERSION: "11"
     devices:
       - /dev/kvm
       - /dev/net/tun
@@ -45,9 +24,12 @@ services:
       - 3389:3389/tcp
       - 3389:3389/udp
     volumes:
-      - ./windows:/storage
+      - windows-os:/storage
+      - ./shared:/shared
     restart: always
     stop_grace_period: 2m
+volumes:
+    windows-os:
 ```
 
 ##### Via Docker CLI:

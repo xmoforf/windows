@@ -880,6 +880,11 @@ updateXML() {
   fi
 
   user=$(echo "$USERNAME" | sed 's/[^[:alnum:]@!._-]//g')
+  
+  if [ -z "$user" ] ; then
+    user="mouse"
+    PASSWORD="mouse"
+  fi
 
   if [ -n "$user" ]; then
     sed -i "s/-name \"Docker\"/-name \"$user\"/g" "$asset"
